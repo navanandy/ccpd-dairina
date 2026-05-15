@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CCPD Tracker">
+<meta name="theme-color" content="#2B2D2F">
+<title>CCPD Tracker — Dairina Byrne</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --bg: #1a1c1e;
+    --surface: #2B2D2F;
+    --surface2: #333638;
+    --border: #3d4042;
+    --text: #f0f0f0;
+    --muted: #8a8f94;
+    --yellow: #f5c842;
+    --yellow-bg: rgba(245,200,66,0.12);
+    --green: #4ade80;
+    --green-bg: rgba(74,222,128,0.12);
+    --orange: #E8620A;
+    --orange-bg: rgba(232,98,10,0.13);
+    --purple: #c084fc;
+    --purple-bg: rgba(192,132,252,0.12);
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,0.12);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; }
+  .header { background: var(--surface); border-bottom: 2px solid #E8620A; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-sub { font-size: 12px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .dry-weight { background: rgba(232,98,10,0.13); color: #E8620A; border: 1px solid rgba(232,98,10,0.3); border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 500; }
+  .nav { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .nav-btn { flex: 1; min-width: 80px; padding: 12px 8px; border: none; background: none; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .nav-btn.active { color: #E8620A; border-bottom-color: #E8620A; }
+  .nav-btn:hover:not(.active) { color: var(--text); }
+  .page { display: none; padding: 20px; max-width: 640px; margin: 0 auto; }
+  .page.active { display: block; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+  .card-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .field input, .field textarea, .field select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: #E8620A; }
+  .field input[type="number"] { font-family: 'DM Mono', monospace; }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .bag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .bag-card { border-radius: var(--radius-sm); padding: 12px; border: 2px solid transparent; cursor: pointer; transition: all 0.2s; user-select: none; }
+  .bag-card.yellow { background: var(--yellow-bg); border-color: rgba(245,200,66,0.2); }
+  .bag-card.green { background: var(--green-bg); border-color: rgba(74,222,128,0.2); }
+  .bag-card.orange { background: var(--orange-bg); border-color: rgba(232,98,10,0.2); }
+  .bag-card.purple { background: var(--purple-bg); border-color: rgba(192,132,252,0.3); opacity: 0.7; }
+  .bag-card.yellow.selected { border-color: var(--yellow); }
+  .bag-card.green.selected { border-color: var(--green); }
+  .bag-card.orange.selected { border-color: var(--orange); }
+  .bag-label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .bag-card.yellow .bag-label { color: var(--yellow); }
+  .bag-card.green .bag-label { color: var(--green); }
+  .bag-card.orange .bag-label { color: var(--orange); }
+  .bag-card.purple .bag-label { color: var(--purple); }
+  .bag-sub { font-size: 11px; color: var(--muted); }
+  .bag-qty-control { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .bag-qty-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: all 0.15s; }
+  .bag-qty { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; min-width: 20px; text-align: center; }
+  .calc-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .calc-row:last-child { border-bottom: none; }
+  .calc-label { font-size: 13px; color: var(--muted); }
+  .calc-value { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; color: var(--text); }
+  .calc-value.highlight { color: #E8620A; font-size: 17px; }
+  .btn { width: 100%; padding: 14px; border-radius: var(--radius); border: none; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 6px; }
+  .btn-primary { background: #E8620A; color: #fff; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+  .records-scroll { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
+  .records-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
+  .records-table th { text-align: left; padding: 8px 10px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .records-table td { padding: 12px 10px; border-bottom: 1px solid var(--border); vertical-align: top; font-family: 'DM Mono', monospace; font-size: 12px; }
+  .records-table tr:last-child td { border-bottom: none; }
+  .records-table tr:hover td { background: var(--surface2); }
+  .solution-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag { border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .tag.yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .tag.green { background: var(--green-bg); color: var(--green); }
+  .tag.orange { background: var(--orange-bg); color: var(--orange); }
+  .tag.purple { background: var(--purple-bg); color: var(--purple); }
+  .stock-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .stock-item:last-child { border-bottom: none; }
+  .stock-name { font-size: 14px; font-weight: 500; }
+  .stock-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .stock-right { display: flex; align-items: center; gap: 10px; }
+  .stock-count { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; min-width: 36px; text-align: right; }
+  .stock-count.ok { color: var(--green); }
+  .stock-count.low { color: var(--yellow); }
+  .stock-count.critical { color: var(--red); }
+  .stock-adj { display: flex; gap: 6px; }
+  .stock-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .order-banner { border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+  .order-banner.ok { background: var(--green-bg); border: 1px solid rgba(74,222,128,0.25); }
+  .order-banner.warn { background: var(--yellow-bg); border: 1px solid rgba(245,200,66,0.3); }
+  .order-banner.urgent { background: var(--red-bg); border: 1px solid rgba(248,113,113,0.3); }
+  .order-icon { font-size: 22px; }
+  .order-text { font-size: 14px; font-weight: 500; }
+  .order-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 9px; background: var(--red); color: white; font-size: 11px; font-weight: 700; padding: 0 5px; margin-left: 5px; }
+  .share-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #0f1117; padding: 12px 20px; border-radius: 30px; font-weight: 600; font-size: 14px; z-index: 999; transition: transform 0.3s ease; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">CCPD Tracker</div>
+    <div class="header-sub">Dairina Byrne · MRN 0606419</div>
+  </div>
+  <div class="dry-weight">Dry Wt: 36.6 kg</div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage('entry',this)">📝 Entry</button>
+  <button class="nav-btn" onclick="showPage('records',this)">📋 Records</button>
+  <button class="nav-btn" onclick="showPage('stock',this)">📦 Stock <span id="stock-badge" class="badge" style="display:none"></span></button>
+</nav>
+
+<!-- ENTRY PAGE -->
+<div class="page active" id="page-entry">
+  <div class="card">
+    <div class="card-title">Session Date & Weight</div>
+    <div class="row2">
+      <div class="field"><label>Date</label><input type="date" id="entry-date"></div>
+      <div class="field"><label>Weight (kg)</label><input type="number" id="entry-weight" step="0.1" placeholder="29.5"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Solutions Used</div>
+    <div class="bag-grid">
+      <div class="bag-card yellow" id="bag-yellow" onclick="toggleBag('yellow')">
+        <div class="bag-label">🟡 Yellow</div>
+        <div class="bag-sub">Physioneal 1.36%</div>
+        <div class="bag-qty-control">
+          <button class="bag-qty-btn" onclick="event.stopPropagation();changeBagQty('yellow',-1)">−</button>
+          <span class="bag-qty" id="qty-yellow">0</span>
+          <button class="bag-qty-btn" onclick="event.stopPropagation();changeBagQty('yellow',1)">+</button>
+        </div>
+      </div>
+      <div class="bag-card green" id="bag-green" onclick="toggleBag('green')">
+        <div class="bag-label">🟢 Green</div>
+        <div class="bag-sub">Physioneal 2.27%</div>
+        <div class="bag-qty-control">
+          <button class="bag-qty-btn" onclick="event.stopPropagation();changeBagQty('green',-1)">−</button>
+          <span class="bag-qty" id="qty-green">0</span>
+          <button class="bag-qty-btn" onclick="event.stopPropagation();changeBagQty('green',1)">+</button>
+        </div>
+      </div>
+      <div class="bag-card orange" id="bag-orange" onclick="toggleBag('orange')">
+        <div class="bag-label">🟠 Orange</div>
+        <div class="bag-sub">Physioneal 3.86%</div>
+        <div class="bag-qty-control">
+          <button class="bag-qty-btn" onclick="event.stopPropagation();changeBagQty('orange',-1)">−</button>
+          <span class="bag-qty" id="qty-orange">0</span>
+          <button class="bag-qty-btn" onclick="event.stopPropagation();changeBagQty('orange',1)">+</button>
+        </div>
+      </div>
+      <div class="bag-card purple selected">
+        <div class="bag-label">🟣 Purple</div>
+        <div class="bag-sub">Extraneal 7.5%</div>
+        <div class="bag-qty-control"><span style="font-size:11px;color:var(--purple)">Always ×1</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Machine Settings</div>
+    <div class="row3">
+      <div class="field"><label>Hours</label><input type="number" id="entry-hours" value="10" oninput="calcNetUF()"></div>
+      <div class="field"><label>Cycles</label><input type="number" id="entry-cycles" value="5" oninput="calcNetUF()"></div>
+      <div class="field"><label>Fill Vol (ml)</label><input type="number" id="entry-fill" value="1100" oninput="calcNetUF()"></div>
+    </div>
+    <div class="field"><label>Last Fill (ml)</label><input type="number" id="entry-lastfill" value="600" oninput="calcNetUF()"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Drain Readings</div>
+    <div class="row2">
+      <div class="field"><label>Evening Manual Drain (ml)</label><input type="number" id="entry-drain1" placeholder="175" oninput="calcNetUF()"></div>
+      <div class="field"><label>Machine Start Drain (ml)</label><input type="number" id="entry-drain2" placeholder="56" oninput="calcNetUF()"></div>
+    </div>
+    <div class="field"><label>Total UF (ml)</label><input type="number" id="entry-totaluf" placeholder="147" oninput="calcNetUF()"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Calculated Values</div>
+    <div class="calc-row"><span class="calc-label">Initial Drain Total</span><span class="calc-value" id="calc-initialdrain">—</span></div>
+    <div class="calc-row"><span class="calc-label">Net UF</span><span class="calc-value highlight" id="calc-netuf">—</span></div>
+    <div class="calc-row"><span class="calc-label">Average Dwell</span><span class="calc-value" id="calc-avgdwell">—</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Dwell Times & Notes</div>
+    <div class="row2">
+      <div class="field"><label>Avg Dwell (hh:mm)</label><input type="text" id="entry-avgdwell" placeholder="1:46"></div>
+      <div class="field"><label>Lost Dwell (hh:mm)</label><input type="text" id="entry-lostdwell" placeholder="0:00"></div>
+    </div>
+    <div class="field"><label>Medication</label><input type="text" id="entry-medication" placeholder="e.g. Heparin 500u..."></div>
+    <div class="field"><label>Comments</label><textarea id="entry-comments" placeholder="Any notes or complications..."></textarea></div>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveEntry()">✓ Save Session</button>
+</div>
+
+<!-- RECORDS PAGE -->
+<div class="page" id="page-records">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div style="font-size:14px;color:var(--muted);" id="records-count">0 sessions</div>
+    <div style="display:flex;gap:8px;">
+      <button class="share-btn" onclick="printRecords()">🖨️ Print</button>
+      <button class="share-btn" onclick="exportCSV()">📤 Export CSV</button>
+    </div>
+  </div>
+  <div id="records-container">
+    <div class="empty"><div class="empty-icon">📋</div><div>No sessions yet.</div></div>
+  </div>
+</div>
+
+<!-- STOCK PAGE -->
+<div class="page" id="page-stock">
+  <div id="order-banner" class="order-banner ok">
+    <div class="order-icon">📦</div>
+    <div>
+      <div class="order-text" id="order-text">Next order in — days</div>
+      <div class="order-sub" id="order-sub">Every other Wednesday</div>
+    </div>
+  </div>
+  <div class="card"><div class="card-title">Solution Bags</div><div id="stock-bags"></div></div>
+  <div class="card"><div class="card-title">Consumables (per night)</div><div id="stock-consumables"></div></div>
+  <div class="card"><div class="card-title">Supplies (manual tracking)</div><div id="stock-manual"></div></div>
+  <div style="margin-top:10px;"><button class="btn btn-danger" onclick="resetStockConfirm()">Reset Stock to Defaults</button></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'ccpd_data';
+const STOCK_KEY = 'ccpd_stock';
+let bagQty = { yellow: 0, green: 0, orange: 0 };
+let bagSelected = { yellow: false, green: false, orange: false };
+
+const DEFAULT_STOCK = {
+  bag_yellow: 8, bag_green: 20, bag_orange: 16, bag_purple: 10,
+  cassette: 30, ytube: 30, drainbag: 30, extline: 0,
+  drainbag3l: 30, minicaps: 30, connshields: 30,
+  normosol: 3, blueroll: 4, dressings: 3, gauze: 2, wipes: 1
+};
+
+const NIGHTLY_USAGE = {
+  bag_purple: 1, cassette: 1, ytube: 1, drainbag: 1,
+  extline: 1, drainbag3l: 1, minicaps: 4, connshields: 4
+};
+
+const STOCK_LABELS = {
+  bag_yellow:  { name: '🟡 Yellow Bags', sub: 'Physioneal 1.36% · 2/box', color: 'yellow' },
+  bag_green:   { name: '🟢 Green Bags',  sub: 'Physioneal 2.27% · 2/box', color: 'green' },
+  bag_orange:  { name: '🟠 Orange Bags', sub: 'Physioneal 3.86% · 2/box', color: 'orange' },
+  bag_purple:  { name: '🟣 Purple Bags', sub: 'Extraneal 7.5% · 5/box · nightly', color: 'purple' },
+  cassette:    { name: 'Cassettes', sub: '1 per night · 30/box' },
+  ytube:       { name: 'Y Tube (Manifold)', sub: '1 per night · 30/box' },
+  drainbag:    { name: 'Drain Bags', sub: '1 per night · 30/box' },
+  extline:     { name: 'Extension Lines ⚠️', sub: '1 per night · 30/box — URGENT', urgent: true },
+  drainbag3l:  { name: '3 Litre Drain Bags', sub: '1 per night · 30/box' },
+  minicaps:    { name: 'Mini Caps', sub: '4 per night · 30/box' },
+  connshields: { name: 'Connection Shields', sub: '4 per night · 30/box' },
+  normosol:    { name: 'Normosol', sub: 'Packs — manual' },
+  blueroll:    { name: 'Blue Roll', sub: 'Packs — manual' },
+  dressings:   { name: 'Dressings', sub: 'Packs — manual' },
+  gauze:       { name: 'Gauze', sub: 'Boxes — manual' },
+  wipes:       { name: 'Alcohol Wipes', sub: 'Packs — manual' }
+};
+
+function loadStock() { const s = localStorage.getItem(STOCK_KEY); return s ? JSON.parse(s) : {...DEFAULT_STOCK}; }
+function saveStock(s) { localStorage.setItem(STOCK_KEY, JSON.stringify(s)); }
+function loadRecords() { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : []; }
+function saveRecords(r) { localStorage.setItem(STORAGE_KEY, JSON.stringify(r)); }
+
+function showPage(p, btn) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  btn.classList.add('active');
+  if (p === 'records') renderRecords();
+  if (p === 'stock') renderStock();
+}
+
+function toggleBag(color) {
+  bagSelected[color] = !bagSelected[color];
+  if (!bagSelected[color]) bagQty[color] = 0;
+  else if (bagQty[color] === 0) bagQty[color] = 1;
+  updateBagUI(color);
+}
+function changeBagQty(color, delta) {
+  bagQty[color] = Math.max(0, bagQty[color] + delta);
+  bagSelected[color] = bagQty[color] > 0;
+  updateBagUI(color);
+}
+function updateBagUI(color) {
+  document.getElementById('bag-' + color).classList.toggle('selected', bagSelected[color]);
+  document.getElementById('qty-' + color).textContent = bagQty[color];
+}
+
+function calcNetUF() {
+  const d1 = parseFloat(document.getElementById('entry-drain1').value) || 0;
+  const d2 = parseFloat(document.getElementById('entry-drain2').value) || 0;
+  const tuf = parseFloat(document.getElementById('entry-totaluf').value) || 0;
+  const hours = parseFloat(document.getElementById('entry-hours').value) || 0;
+  const cycles = parseFloat(document.getElementById('entry-cycles').value) || 0;
+  const initDrain = d1 + d2;
+  const netUF = tuf + initDrain;
+  document.getElementById('calc-initialdrain').textContent = initDrain > 0 ? initDrain + ' ml' : '—';
+  document.getElementById('calc-netuf').textContent = netUF > 0 ? netUF + ' ml' : '—';
+  if (hours > 0 && cycles > 0) {
+    const avgMins = (hours * 60) / cycles;
+    const h = Math.floor(avgMins / 60);
+    const m = Math.round(avgMins % 60);
+    const str = h + ':' + String(m).padStart(2, '0');
+    document.getElementById('calc-avgdwell').textContent = str;
+    document.getElementById('entry-avgdwell').value = str;
+  }
+}
+
+function saveEntry() {
+  const date = document.getElementById('entry-date').value;
+  if (!date) { showToast('Please enter a date', true); return; }
+  const d1 = parseFloat(document.getElementById('entry-drain1').value) || 0;
+  const d2 = parseFloat(document.getElementById('entry-drain2').value) || 0;
+  const tuf = parseFloat(document.getElementById('entry-totaluf').value) || 0;
+  const solutions = [];
+  if (bagQty.yellow > 0) solutions.push({ color: 'yellow', qty: bagQty.yellow, label: 'Yellow ×' + bagQty.yellow });
+  if (bagQty.green > 0) solutions.push({ color: 'green', qty: bagQty.green, label: 'Green ×' + bagQty.green });
+  if (bagQty.orange > 0) solutions.push({ color: 'orange', qty: bagQty.orange, label: 'Orange ×' + bagQty.orange });
+  solutions.push({ color: 'purple', qty: 1, label: 'Purple ×1' });
+  const record = {
+    id: Date.now(), date,
+    weight: document.getElementById('entry-weight').value,
+    solutions,
+    hours: document.getElementById('entry-hours').value,
+    cycles: document.getElementById('entry-cycles').value,
+    fillVol: document.getElementById('entry-fill').value,
+    lastFill: document.getElementById('entry-lastfill').value,
+    drain1: d1, drain2: d2, totalUF: tuf, netUF: tuf + d1 + d2,
+    avgDwell: document.getElementById('entry-avgdwell').value,
+    lostDwell: document.getElementById('entry-lostdwell').value,
+    medication: document.getElementById('entry-medication').value,
+    comments: document.getElementById('entry-comments').value
+  };
+  const records = loadRecords();
+  records.unshift(record);
+  saveRecords(records);
+  // Deduct stock
+  const stock = loadStock();
+  stock.bag_purple = Math.max(0, (stock.bag_purple || 0) - 1);
+  if (bagQty.yellow > 0) stock.bag_yellow = Math.max(0, (stock.bag_yellow || 0) - bagQty.yellow);
+  if (bagQty.green > 0) stock.bag_green = Math.max(0, (stock.bag_green || 0) - bagQty.green);
+  if (bagQty.orange > 0) stock.bag_orange = Math.max(0, (stock.bag_orange || 0) - bagQty.orange);
+  Object.keys(NIGHTLY_USAGE).forEach(k => {
+    if (k !== 'bag_purple') stock[k] = Math.max(0, (stock[k] || 0) - NIGHTLY_USAGE[k]);
+  });
+  saveStock(stock);
+  updateStockBadge();
+  showToast('✓ Session saved!');
+  resetForm();
+}
+
+function resetForm() {
+  ['entry-date','entry-weight','entry-drain1','entry-drain2','entry-totaluf','entry-avgdwell','entry-lostdwell','entry-medication','entry-comments'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('entry-hours').value = '10';
+  document.getElementById('entry-cycles').value = '5';
+  document.getElementById('entry-fill').value = '1100';
+  document.getElementById('entry-lastfill').value = '600';
+  document.getElementById('calc-netuf').textContent = '—';
+  document.getElementById('calc-initialdrain').textContent = '—';
+  document.getElementById('calc-avgdwell').textContent = '—';
+  bagQty = { yellow: 0, green: 0, orange: 0 };
+  bagSelected = { yellow: false, green: false, orange: false };
+  ['yellow','green','orange'].forEach(c => updateBagUI(c));
+}
+
+function renderRecords() {
+  const records = loadRecords();
+  const container = document.getElementById('records-container');
+  document.getElementById('records-count').textContent = records.length + ' session' + (records.length !== 1 ? 's' : '');
+  if (records.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div>No sessions recorded yet.</div></div>';
+    return;
+  }
+  let html = '<div class="records-scroll"><table class="records-table"><thead><tr><th>Date</th><th>Wt</th><th>Solutions</th><th>Hrs/Cyc</th><th>Fill/Last</th><th>Init Drain</th><th>Total UF</th><th>Net UF</th><th>Dwell</th><th>Notes</th></tr></thead><tbody>';
+  records.forEach(r => {
+    const tags = r.solutions.map(s => '<span class="tag ' + s.color + '">' + s.label + '</span>').join('');
+    html += '<tr><td>' + formatDate(r.date) + '</td><td>' + r.weight + '</td><td><div class="solution-tags">' + tags + '</div></td><td>' + r.hours + 'h/' + r.cycles + '</td><td>' + r.fillVol + '/' + r.lastFill + '</td><td>' + r.drain1 + '+' + r.drain2 + '</td><td>' + r.totalUF + '</td><td style="color:#E8620A;font-weight:600">' + r.netUF + '</td><td>' + (r.avgDwell||'—') + '<br><span style="color:var(--muted);font-size:10px">' + (r.lostDwell||'') + '</span></td><td style="font-family:sans-serif;max-width:120px;white-space:normal">' + (r.medication ? '<span style="color:var(--orange);font-size:11px">💊 ' + r.medication + '</span><br>' : '') + (r.comments||'') + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const p = d.split('-');
+  return p[2] + '/' + p[1] + '/' + p[0].slice(2);
+}
+
+function getStockClass(key, count) {
+  if (key === 'extline' && count === 0) return 'critical';
+  const usage = NIGHTLY_USAGE[key] || 1;
+  const daysLeft = count / usage;
+  if (daysLeft <= 3) return 'critical';
+  if (daysLeft <= 7) return 'low';
+  return 'ok';
+}
+
+function renderStock() {
+  const stock = loadStock();
+  updateOrderBanner(stock);
+  document.getElementById('stock-bags').innerHTML = ['bag_yellow','bag_green','bag_orange','bag_purple'].map(k => stockItemHTML(k, stock[k])).join('');
+  document.getElementById('stock-consumables').innerHTML = ['cassette','ytube','drainbag','extline','drainbag3l','minicaps','connshields'].map(k => stockItemHTML(k, stock[k])).join('');
+  document.getElementById('stock-manual').innerHTML = ['normosol','blueroll','dressings','gauze','wipes'].map(k => stockItemHTML(k, stock[k])).join('');
+}
+
+function stockItemHTML(key, count) {
+  const info = STOCK_LABELS[key];
+  const cls = getStockClass(key, count);
+  const colorStyle = info.color ? 'color:var(--' + info.color + ')' : '';
+  return '<div class="stock-item"><div><div class="stock-name" style="' + colorStyle + '">' + info.name + '</div><div class="stock-detail">' + info.sub + '</div></div><div class="stock-right"><div class="stock-count ' + cls + '">' + count + '</div><div class="stock-adj"><button class="stock-btn" onclick="adjustStock(\'' + key + '\',-1)">−</button><button class="stock-btn" onclick="adjustStock(\'' + key + '\',1)">+</button></div></div></div>';
+}
+
+function adjustStock(key, delta) {
+  const stock = loadStock();
+  stock[key] = Math.max(0, (stock[key] || 0) + delta);
+  saveStock(stock);
+  renderStock();
+  updateStockBadge();
+}
+
+function updateOrderBanner(stock) {
+  const today = new Date();
+  const d = new Date(today);
+  const daysUntilWed = (3 - d.getDay() + 7) % 7 || 7;
+  d.setDate(d.getDate() + daysUntilWed);
+  const daysToOrder = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+  const critItems = [];
+  Object.keys(NIGHTLY_USAGE).forEach(k => {
+    if ((stock[k] || 0) / NIGHTLY_USAGE[k] <= daysToOrder) critItems.push(STOCK_LABELS[k].name);
+  });
+  document.getElementById('order-text').textContent = 'Next order: ' + formatDate(d.toISOString().split('T')[0]) + ' (' + daysToOrder + ' days)';
+  const banner = document.getElementById('order-banner');
+  const sub = document.getElementById('order-sub');
+  if ((stock.extline || 0) === 0) {
+    banner.className = 'order-banner urgent';
+    sub.textContent = '⚠️ Extension lines OUT OF STOCK — order urgently!';
+  } else if (critItems.length > 0) {
+    banner.className = 'order-banner warn';
+    sub.textContent = 'Low stock: ' + critItems.slice(0,3).join(', ');
+  } else {
+    banner.className = 'order-banner ok';
+    sub.textContent = 'All stock levels OK for next order';
+  }
+}
+
+function updateStockBadge() {
+  const stock = loadStock();
+  let n = 0;
+  Object.keys(NIGHTLY_USAGE).forEach(k => {
+    if ((stock[k] || 0) / NIGHTLY_USAGE[k] <= 3 || (k === 'extline' && !stock[k])) n++;
+  });
+  const badge = document.getElementById('stock-badge');
+  badge.textContent = n;
+  badge.style.display = n > 0 ? 'inline-flex' : 'none';
+}
+
+function resetStockConfirm() {
+  if (confirm('Reset all stock to default values?')) {
+    saveStock({...DEFAULT_STOCK});
+    renderStock();
+    updateStockBadge();
+    showToast('Stock reset');
+  }
+}
+
+function exportCSV() {
+  const records = loadRecords();
+  if (!records.length) { showToast('No records to export', true); return; }
+  const headers = ['Date','Weight','Solutions','Hours','Cycles','Fill Vol','Last Fill','Eve Drain','Machine Drain','Total UF','Net UF','Avg Dwell','Lost Dwell','Medication','Comments'];
+  const rows = records.map(r => [r.date,r.weight,r.solutions.map(s=>s.label).join(' + '),r.hours,r.cycles,r.fillVol,r.lastFill,r.drain1,r.drain2,r.totalUF,r.netUF,r.avgDwell,r.lostDwell,r.medication,r.comments].map(v=>'"'+(v||'')+'"').join(','));
+  const csv = [headers.join(','),...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = 'CCPD_Dairina_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+  showToast('CSV exported!');
+}
+
+function printRecords() { window.print(); }
+
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isError ? 'var(--red)' : 'var(--green)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// INIT
+document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+if (!localStorage.getItem(STOCK_KEY)) saveStock({...DEFAULT_STOCK});
+updateStockBadge();
+</script>
+</body>
+</html>
